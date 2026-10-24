@@ -16,8 +16,8 @@ const app = express();
 app.use(bodyParser.json());
 // app.use(cors());
 app.use(cors({
-  origin: "http://localhost:5173",  // frontend origin
-  credentials: true                 // allow cookies/sessions
+  origin: "http://localhost:5173",  
+  credentials: true                 
 }));
 app.use(cookieParser());
 app.use('/uploads', express.static('uploads'));
@@ -121,6 +121,8 @@ app.post("/projectfile/upload", upload.single("file"), async (req, res) => {
   try {
     const { uploader, projectId, taskId } = req.body; 
     const file = req.file;
+    console.log("🔥 BODY:", req.body);
+    console.log("🔥 FILE:", req.file);
     
     if (!file || !uploader) {
       return res.status(400).json({ message: "File and uploader are required" });

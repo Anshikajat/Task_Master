@@ -25,10 +25,11 @@ const CreateTask = () => {
     const User = JSON.parse(localStorage.getItem("User"));
     if (User) {
       setUserData(User);
+      console.log(User)
       
       setTaskDetails(prev => ({
         ...prev,
-        referralId: User._id 
+        referralId: User.id 
       }));
       console.log("User data:", User);
     }

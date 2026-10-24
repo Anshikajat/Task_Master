@@ -19,7 +19,8 @@ export const NoteProvider = ({ children }) => {
     const [messages, setMessages] = useState([]);
     const [socket, setSocket] = useState(null);
     
-    const id = LogedInUser?._id;
+    const id = LogedInUser?.id;
+    
     const role = LogedInUser?.role;
     const id2 = LogedInUser?.username;
 
@@ -51,17 +52,35 @@ export const NoteProvider = ({ children }) => {
         }
     };
 
+useEffect(() => {
+    const loadFiles = async () => {
+        if (!LogedInUser?.id) return;
 
+        try {
+            const data = await fetchDataaa(LogedInUser.id);
+            console.log("FILES FROM BACKEND:", data);
+            setFiles(data || []);
+        } catch (err) {
+            console.error("Error loading files:", err);
+            setFiles([]);
+        }
+    };
+
+    loadFiles();
+}, [LogedInUser?.id]);
     const fetchDataaa = async () => {
-    if (!LogedInUser || !LogedInUser._id) {
+        console.log("LogedInUser",LogedInUser)
+        console.log(LogedInUser.id)
+    if (!LogedInUser || !LogedInUser.id) {
     
         return [];
     }
     try {
         
-        const response = await axios.get(`http://localhost:5500/projectupload/${LogedInUser._id}`);
-        
+        const response = await axios.get(`http://localhost:5500/projectupload/${LogedInUser.id}`);
+        console.log("fffffffffffff",response.data);
         return response.data;
+        
     } catch (error) {
         console.error("Error fetching data:", error);
         throw error;
@@ -146,6 +165,7 @@ export const NoteProvider = ({ children }) => {
                 setLogedIn(true);
                 setLogedInUser(User);
                 
+                
             } else {
                 setLogedIn(false);
                 setLogedInUser(null);
@@ -178,38 +198,38 @@ export const NoteProvider = ({ children }) => {
     }, [LogedInUser]);
 
     const uploadProjectFile = async (projectFileData) => {
-        if (!LogedInUser) {
-            throw new Error("User not logged in");
-        }
+        console.log("User:", LogedInUser)
+    if (!LogedInUser || !LogedInUser.id) {
+    throw new Error("User ID not available");
+}
+    
+    try {
+        console.log("User:", LogedInUser)
+        console.log("Uploader ID:", LogedInUser?.id);
+        const formData = new FormData();
+        formData.append("file", projectFileData.file);
+        formData.append("uploader", LogedInUser.id);
         
-        try {
-            const formData = new FormData();
-            formData.append("file", projectFileData.file);
-            formData.append("uploader", LogedInUser._id);
-            
-            if (projectFileData.projectId) {
-                formData.append("projectId", projectFileData.projectId);
-            }
-            if (projectFileData.taskId) {
-                formData.append("taskId", projectFileData.taskId);
-            }
-
-            const response = await axios.post("http://localhost:5500/projectfile/upload", formData, {
-                headers: {
-                    "Content-Type": "multipart/form-data"
-                }
-            });
-
-            
-            return response.data;
-
-        } catch (error) {
-            console.error("Error uploading project file:", error);
-            setError("Failed to upload project file");
-            throw error;
+        if (projectFileData.projectId) {
+            formData.append("projectId", projectFileData.projectId);
         }
-    };
+        if (projectFileData.taskId) {
+            formData.append("taskId", projectFileData.taskId);
+        }
 
+        const response = await axios.post(
+            "http://localhost:5500/projectfile/upload",
+            formData
+        );
+
+        return response.data;
+
+    } catch (error) {
+        console.error("Error uploading project file:", error);
+        setError("Failed to upload project file");
+        throw error;
+    }
+};
     
     const refreshData = async () => {
         if (!LogedInUser) return;

@@ -10,20 +10,32 @@ import Notecontext from './Notecontext.jsx';
 import axios from 'axios';
 
 function TextFilePreview({ filePath }) {
+  
   const [content, setContent] = useState('Loading...');
 
   useEffect(() => {
+    
     const fetchTextContent = async () => {
       try {
-        const response = await fetch(`http://localhost:5500/${filePath}`);
-        if (!response.ok) throw new Error('Failed to load text file');
+        const fileName = filePath?.split('\\').pop();
+
+        const response = await fetch(
+          `http://localhost:5500/uploads/${fileName}`
+        );
+
+        if (!response.ok) throw new Error('Failed to load');
+
         const text = await response.text();
         setContent(text);
-      } catch {
+      } catch (err) {
+        console.error(err);
         setContent('Error loading preview');
       }
     };
-    fetchTextContent();
+
+    if (filePath) {
+      fetchTextContent();
+    }
   }, [filePath]);
 
   return <code className="whitespace-pre-wrap text-sm">{content}</code>;
@@ -44,29 +56,55 @@ export default function Project() {
   const [message, setMessage] = useState('');
   const [verificationLoading, setVerificationLoading] = useState(new Set());
  
-
+useEffect(() => {
+  console.log("FILES UPDATED:", files);
+}, [files]);
+  // useEffect(() => {
+  //    console.log("filePath:");
+  //   const loadProjectFiles = async () => {
+  //     if (id) {
+  //       try {
+  //         setLoading(true);
+  //         const data = await fetchDataaa();
+  //         console.log("filePath:",data);
+  //         setFiles(data || []);
+  //       } catch {
+  //         setFiles([]);
+  //       } finally {
+  //         setLoading(false);
+  //       }
+  //     }
+  //   };
+  //   loadProjectFiles();
+  // }, [id]);
   useEffect(() => {
-    const loadProjectFiles = async () => {
-      if (id) {
-        try {
-          setLoading(true);
-          const data = await fetchDataaa();
-          setFiles(data || []);
-        } catch {
-          setFiles([]);
-        } finally {
-          setLoading(false);
-        }
-      }
-    };
-    loadProjectFiles();
-  }, [id]);
-  
+  if (!LogedInUser) return;
+
+  const loadProjectFiles = async () => {
+    try {
+      setLoading(true);
+      const data = await fetchDataaa();
+      console.log("filePath:", data);
+      
+      setFiles(data || []);
+      console.log("RENDER FILE:",  files);
+    } catch (err) {
+      console.error(err);
+      setFiles([]);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  loadProjectFiles();
+}, [LogedInUser]);
 const refreshPageData = async () => {
   try {
     setLoading(true);
     const data = await fetchDataaa();
     setFiles(data || []);
+    
+    
   } catch (error) {
     console.error("Error refreshing data:", error);
   } finally {
@@ -104,7 +142,7 @@ const refreshPageData = async () => {
   const getVerificationBadge = (file) => {
     if (!file || !file.taskId) return null;
     
-    const verificationStatus = file.taskId.verificationStatus || 'pending';
+    const verificationStatus = file.verification || 'pending';
     
     switch (verificationStatus) {
       case 'approved':
@@ -252,9 +290,9 @@ const refreshPageData = async () => {
       (filterType === 'audio' && file.mimeType?.startsWith('audio/')) ||
       (filterType === 'archives' && (file.mimeType?.includes('zip') || file.mimeType?.includes('archive'))) ||
       (filterType === 'favorites' && favorites.has(file._id)) ||
-      (filterType === 'approved' && file.taskId?.verificationStatus === 'approved') ||
-      (filterType === 'pending' && (!file.taskId?.verificationStatus || file.taskId?.verificationStatus === 'pending')) ||
-      (filterType === 'rejected' && file.taskId?.verificationStatus === 'rejected');
+      (filterType === 'approved' && file.verification=== 'approved') ||
+      (filterType === 'pending' && (!file.verification || file.verification === 'pending')) ||
+      (filterType === 'rejected' && file.verification === 'rejected');
     return matchesSearch && matchesFilter;
   });
 
@@ -265,8 +303,8 @@ const refreshPageData = async () => {
       case 'uploader': return a.uploader?.fullName?.localeCompare(b.uploader?.fullName) || 0;
       case 'verification': 
         const statusOrder = { 'approved': 0, 'in_review': 1, 'pending': 2, 'rejected': 3 };
-        const aStatus = a.taskId?.verificationStatus || 'pending';
-        const bStatus = b.taskId?.verificationStatus || 'pending';
+        const aStatus = a.verification || 'pending';
+        const bStatus = b.verification || 'pending';
         return statusOrder[aStatus] - statusOrder[bStatus];
       default: return new Date(b.uploadedAt || 0) - new Date(a.uploadedAt || 0);
     }
@@ -622,6 +660,7 @@ const refreshPageData = async () => {
             <div className="p-10">
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-8">
                 {sortedFiles.map((file, index) => (
+                  
                   <div
                     key={file._id}
                     className="group relative overflow-hidden rounded-3xl shadow-2xl transition-all duration-500 transform hover:-translate-y-2 hover:rotate-1 hover:shadow-3xl"
